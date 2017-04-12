@@ -62,17 +62,20 @@ df_centroids <- data.frame(cc_Centroids@coords, as.numeric(rownames(cc_Centroids
 colnames(df_centroids)<- c("cx", "cy", "OBJECTID")
 cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, df_centroids[match(cc_onrouteWGS84@data[,1], df_centroids[,3]),]) #add centroid coordinates to cc df
 
-coordss <- coord_sel[1:5,] # to test run loop
+coordss <- coord_sel[1:5,] # to test loop
+
+library(rmarkdown)
 
 b<-list()
 for(i in 1:nrow(coordss)){
   lon <- coordss$mitt_wgs84_lon[i]
   lat <- coordss$mitt_wgs84_lat[i]
-b[[i]] <-  qmap(c(lon = lon, lat = lat), zoom = 14, maptype = 'hybrid')+
+routemap <- qmap(c(lon = lon, lat = lat), zoom = 14, maptype = 'hybrid')+
   geom_polygon(aes(x = long, y = lat, group=group), data = cc_onrouteWGS84, fill="blue", alpha=.4, color="blue")+
   geom_line(aes(x = long, y = lat, group=group),data = bbs_linesWGS84, color="red")+
   geom_text(label=coordss$karta[i],vjust=1.3, hjust=-0.1, color="white", size=12)+
   geom_text(label=coordss$namn[i],vjust=1.3, hjust=1.2, color="white", size=12)+
-  geom_text(data = cc_onrouteWGS84@data, aes(label = id,x = cx, y = cy), color = "white", size=6)
+  geom_text(data = subset(cc_onrouteWGS84@data, karta==coordss$karta[i]) , aes(label = id,x = cx, y = cy), color = "white", size=6)
+render("siteselection.rmd", output_file = paste0("report.", i,".html"))
 }
 
