@@ -1,0 +1,67 @@
+setwd("C:/Users/Dafne/Desktop/Svensk Fågeltaxering/GIS map")
+
+library(ggplot2)
+library(ggmap)
+library(dplyr)
+library(rgdal)
+library(rgeos)
+
+swe     <- spTransform(readOGR("Sweden", "ne_50m_admin_0_Sweden"), CRS("+init=epsg:3006"))
+län     <- spTransform(readOGR("Sweden", "s- county"), CRS("+init=epsg:3006"))
+land    <- spTransform(readOGR("Sweden", "s- country"), CRS("+init=epsg:3006"))
+lakes   <- spTransform(readOGR("Sweden", "s- lakes all"), CRS("+init=epsg:3006"))
+protect <- readOGR(".", "Fridlyst2014_kartor")
+NR      <- readOGR(".", "NR_polygon") 
+NP      <- readOGR(".", "NP_polygon")
+fjäll   <- readOGR(".", "Fjngrans")
+SFT     <- readOGR("SFT", "stdruttPol")
+
+NN     <- readOGR("Sweden", "region_NNf")
+proj4string(NN) <- CRS("+init=epsg:4326")
+NN <- spTransform(NN, CRS("+init=epsg:3006"))
+
+SN     <- readOGR("Sweden", "region_SNf")
+proj4string(SN) <- CRS("+init=epsg:4326")
+SN <- spTransform(SN, CRS("+init=epsg:3006"))
+
+ÖS     <- readOGR("Sweden", "region_OSf")
+proj4string(ÖS) <- CRS("+init=epsg:4326")
+ÖS <- spTransform(ÖS, CRS("+init=epsg:3006"))
+
+VGS    <- readOGR("Sweden", "region_VGSf")
+proj4string(VGS) <- CRS("+init=epsg:4326")
+VGS <- spTransform(VGS, CRS("+init=epsg:3006"))
+
+SG     <- readOGR("Sweden", "region_SGf")
+proj4string(SG) <- CRS("+init=epsg:4326")
+SG <- spTransform(SG, CRS("+init=epsg:3006"))
+
+ÖG     <- readOGR("Sweden", "region_OGf")
+proj4string(ÖG) <- CRS("+init=epsg:4326")
+ÖG <- spTransform(ÖG, CRS("+init=epsg:3006"))
+
+proj4string(SFT) <- CRS("+init=epsg:3021")
+SFT <- spTransform(SFT, CRS("+init=epsg:3006"))
+SFT_buffer <- gBuffer(spgeom = SFT, width = 1000) 
+
+
+plot(land, col="grey", border=NA)
+plot(lakes, add=T, col="white", border=NA)
+plot(NR, add=T, col="white", border=NA)
+plot(NP, add=T, col="white", border=NA)
+plot(fjäll, add=T, col="white", border=NA)
+plot(swe, add=T)
+plot(NN, col=NA, border="black", add=T)
+plot(SN, col=NA, border="black", add=T)
+plot(VGS, col=NA, border="black", add=T)
+plot(ÖS, col=NA, border="black", add=T)
+plot(ÖG, col=NA, border="black", add=T)
+plot(SG, col=NA, border="black", add=T)
+plot(SFT_buffer, add=T, col="black")
+text(300000, 6195412, "1", family="serif", cex=0.9)
+text(655000, 6400000, "2", family="serif", cex=0.9)
+text(260000, 6650000, "3", family="serif", cex=0.9)
+text(800000, 6600000, "4", family="serif", cex=0.9)
+text(680000, 6850000, "5", family="serif", cex=0.9)
+text(870000, 7200000, "6", family="serif", cex=0.9)
+
