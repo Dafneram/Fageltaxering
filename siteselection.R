@@ -27,8 +27,8 @@ SubLan<-function(x){
 cc_sublan <- lapply(levels(cc_after2006@data$Lannr),SubLan) 
 cc_onroute <- do.call(bind, cc_sublan)
 rm(cc_after2006, cc_sublan)
-cc_onroute@data[,3:12]<-NULL
-cc_onroute@data[,4:7]<-NULL
+cc_onroute@data[,c(3:12,14:17)]<-NULL
+cc_onrouteWGS84 <- spTransform(cc_onroute, CRS("+proj=longlat +datum=WGS84")) # reproject
 
 bbs_linesWGS84 <- spTransform(bbs_lines, CRS("+proj=longlat +datum=WGS84")) # reproject
 bbs_linesWGS84$KARTA <- as.character(bbs_linesWGS84$KARTA)
@@ -46,25 +46,23 @@ bla <- intersect(bbs_linesWGS84,cc_onrouteWGS84) #intersect routes with ccs, onl
 kartor <- unique(bla@data$KARTA) #get route numbers
 route_ccs <- data.frame(cbind(bla@data$KARTA,bla@data$OBJECTID)) #create df with cc IDs for each route
 colnames(route_ccs) <- c("karta","OBJECTID")
-route_ccs <- route_ccs[which(!duplicated(route_ccs$OBJECTID)), ] # omit ccs that intersect more than once
-route_ccs <- ddply(route_ccs, .(karta), mutate, id = seq_along(OBJECTID))
+route_ccs <- route_ccs[which(!duplicated(route_ccs$OBJECTID)), ] # omit doubles; ccs that intersect more than once
+route_ccs <- ddply(route_ccs, .(karta), mutate, id = seq_along(OBJECTID)) #number ccs along each route
+
 route_ccs$OBJECTID <- as.numeric(as.character(route_ccs$OBJECTID))
+cc_onrouteWGS84@data$OBJECTID <- as.numeric(cc_onrouteWGS84@data$OBJECTID)
+cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, route_ccs[match(cc_onrouteWGS84@data[,1], route_ccs[,2]),]) #add sequence numbers to cc df
 
-cc_onroute@data$OBJECTID <- as.numeric(cc_onroute@data$OBJECTID)
-
-cc_onroute@data <- data.frame(cc_onroute@data, route_ccs[match(cc_onroute@data[,1], route_ccs[,2]),])
-cc_onrouteWGS84 <- spTransform(cc_onroute, CRS("+proj=longlat +datum=WGS84")) # reproject
-
-coord_sel <- coord[coord$karta %in% kartor,]
+coord_sel <- coord[coord$karta %in% kartor,] #select routes with ccs on them
 
 cc_onrouteWGS84@data$OBJECTID <- as.character(cc_onrouteWGS84@data$OBJECTID)
-cc_Centroids <- gCentroid(cc_onrouteWGS84, byid=TRUE, id=cc_onrouteWGS84@data$OBJECTID)
+cc_Centroids <- gCentroid(cc_onrouteWGS84, byid=TRUE, id=cc_onrouteWGS84@data$OBJECTID) #get centroid coordinates of ccs
 cc_onrouteWGS84@data$OBJECTID <- as.numeric(cc_onrouteWGS84@data$OBJECTID)
 df_centroids <- data.frame(cc_Centroids@coords, as.numeric(rownames(cc_Centroids@coords)))
 colnames(df_centroids)<- c("cx", "cy", "OBJECTID")
-cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, df_centroids[match(cc_onrouteWGS84@data[,1], df_centroids[,3]),])
+cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, df_centroids[match(cc_onrouteWGS84@data[,1], df_centroids[,3]),]) #add centroid coordinates to cc df
 
-coordss <- coord_sel[1:5,]
+coordss <- coord_sel[1:5,] # to test run loop
 
 b<-list()
 for(i in 1:nrow(coordss)){
@@ -75,10 +73,6 @@ b[[i]] <-  qmap(c(lon = lon, lat = lat), zoom = 14, maptype = 'hybrid')+
   geom_line(aes(x = long, y = lat, group=group),data = bbs_linesWGS84, color="red")+
   geom_text(label=coordss$karta[i],vjust=1.3, hjust=-0.1, color="white", size=12)+
   geom_text(label=coordss$namn[i],vjust=1.3, hjust=1.2, color="white", size=12)+
-  geom_text(data = map_df, aes(label = id,x = cx, y = cy), color = "white", size=6)
+  geom_text(data = cc_onrouteWGS84@data, aes(label = id,x = cx, y = cy), color = "white", size=6)
 }
-
-
-map_df <- cc_onrouteWGS84@data[,c(1,3,4,5,7,9,10)]
-
 
