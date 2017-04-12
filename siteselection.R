@@ -8,18 +8,17 @@ library(plyr)
 
 setwd("C:/DAFNE/Sweden GIS data")
 
-cc_total <- readOGR("sksUtfordAvverk_20170220T054858Z", "sksUtfordAvverk") #load cc shapefile
+cc_total <- readOGR("sksUtfordAvverk_20170220T054858Z", "sksUtfordAvverk") #load clear-cut(cc) shapefile
 cc_total <- cc_total[!is.na(cc_total@data$Avvdatum) ,] #omit NA's in Avvdatum
 cc_total@data$Avvdatum <- as.Date(cc_total@data$Avvdatum)  #transform Avvdatum into date
 cc_after2006 <- cc_total[cc_total@data$Avvdatum > "2007-01-01", ] #omit all ccs before 2007
-cc_after2006 <- cc_after2006[!is.na(cc_after2006@data$Lannr) ,]
+cc_after2006 <- cc_after2006[!is.na(cc_after2006@data$Lannr) ,] #omit NA's in Lannr
 rm(cc_total)
 
 bbs_lines <- readOGR("Transects, points and buffers", "bbs_lines")  #load transects shapefile
 bbs_linesSWE99TM <- spTransform(bbs_lines, CRS("+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs")) # reproject
-#bbs_linesWGS84 <- spTransform(bbs_lines, CRS("+proj=longlat +datum=WGS84")) # reproject
 
-
+#function to get intersecting ccs per län, since running it for whole of sweden at once need to much working memory?!
 SubLan<-function(x){
   a <- cc_after2006[cc_after2006@data$Lannr == x,]
   b <- a[bbs_linesSWE99TM,]
@@ -30,8 +29,6 @@ cc_onroute <- do.call(bind, cc_sublan)
 rm(cc_after2006, cc_sublan)
 cc_onroute@data[,3:12]<-NULL
 cc_onroute@data[,4:7]<-NULL
-cc_onrouteBU <- cc_onroute
-cc_onroute <- cc_onrouteBU
 
 bbs_linesWGS84 <- spTransform(bbs_lines, CRS("+proj=longlat +datum=WGS84")) # reproject
 bbs_linesWGS84$KARTA <- as.character(bbs_linesWGS84$KARTA)
@@ -42,14 +39,14 @@ coord$karta <- as.character(coord$karta)
 names <- read.csv("public_standardrutter_oversikt.csv", sep=";", dec=",")
 names$karta <- as.character(names$karta)
 names$namn <- as.character(names$namn)
-coord <- merge(coord, names[,2:3], by="karta")
+coord <- merge(coord, names[,2:3], by="karta")  #add route names to coordinates df
 
 
-bla <- intersect(bbs_linesWGS84,cc_onrouteWGS84)
-kartor <- unique(bla@data$KARTA)
-route_ccs <- data.frame(cbind(bla@data$KARTA,bla@data$OBJECTID))
+bla <- intersect(bbs_linesWGS84,cc_onrouteWGS84) #intersect routes with ccs, only to get the numbers of the routes that have ccs
+kartor <- unique(bla@data$KARTA) #get route numbers
+route_ccs <- data.frame(cbind(bla@data$KARTA,bla@data$OBJECTID)) #create df with cc IDs for each route
 colnames(route_ccs) <- c("karta","OBJECTID")
-route_ccs <- route_ccs[which(!duplicated(route_ccs$OBJECTID)), ]
+route_ccs <- route_ccs[which(!duplicated(route_ccs$OBJECTID)), ] # omit ccs that intersect more than once
 route_ccs <- ddply(route_ccs, .(karta), mutate, id = seq_along(OBJECTID))
 route_ccs$OBJECTID <- as.numeric(as.character(route_ccs$OBJECTID))
 
