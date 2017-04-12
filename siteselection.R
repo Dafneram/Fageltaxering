@@ -65,8 +65,8 @@ cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, df_centroids[match(cc_o
 coordss <- coord_sel[1:5,] # to test loop
 
 library(rmarkdown)
+library(knitr)
 
-b<-list()
 for(i in 1:nrow(coordss)){
   lon <- coordss$mitt_wgs84_lon[i]
   lat <- coordss$mitt_wgs84_lat[i]
@@ -76,6 +76,6 @@ routemap <- qmap(c(lon = lon, lat = lat), zoom = 14, maptype = 'hybrid')+
   geom_text(label=coordss$karta[i],vjust=1.3, hjust=-0.1, color="white", size=12)+
   geom_text(label=coordss$namn[i],vjust=1.3, hjust=1.2, color="white", size=12)+
   geom_text(data = subset(cc_onrouteWGS84@data, karta==coordss$karta[i]) , aes(label = id,x = cx, y = cy), color = "white", size=6)
-render("siteselection.rmd", output_file = paste0("report.", i,".html"))
+knit2pdf("siteselection.rmd", output = paste0("map.",coordss$karta[i],".pdf"))
 }
 
