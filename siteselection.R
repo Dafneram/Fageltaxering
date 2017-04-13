@@ -79,3 +79,4 @@ routemap <- qmap(c(lon = lon, lat = lat), zoom = 14, maptype = 'hybrid')+
 knit2pdf("siteselection.rmd", output = paste0("map.",coordss$karta[i],".pdf"))
 }
 
+
