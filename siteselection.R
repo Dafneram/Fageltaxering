@@ -8,18 +8,21 @@ library(plyr)
 
 setwd("C:/DAFNE/Sweden GIS data")
 
-cc_total <- readOGR("sksUtfordAvverk_20170220T054858Z", "sksUtfordAvverk") #load clear-cut(cc) shapefile
-cc_total <- cc_total[!is.na(cc_total@data$Avvdatum) ,] #omit NA's in Avvdatum
-cc_total@data$Avvdatum <- as.Date(cc_total@data$Avvdatum)  #transform Avvdatum into date
-cc_after2006 <- cc_total[cc_total@data$Avvdatum > "2007-01-01", ] #omit all ccs before 2007
-cc_after2006 <- cc_after2006[!is.na(cc_after2006@data$Lannr) ,] #omit NA's in Lannr
+#load clear-cut shapefile and select after2006
+cc_total <- readOGR("sksUtfordAvverk_20170220T054858Z", "sksUtfordAvverk") 
+cc_total <- cc_total[!is.na(cc_total@data$Avvdatum) ,] 
+cc_total@data$Avvdatum <- as.Date(cc_total@data$Avvdatum)  
+cc_after2006 <- cc_total[cc_total@data$Avvdatum > "2007-01-01", ] 
+cc_after2006 <- cc_after2006[!is.na(cc_after2006@data$Lannr) ,] 
 rm(cc_total)
 
+#load standardroute lines shapefile and reproject
 bbs_lines <- readOGR("Transects, points and buffers", "bbs_lines")  #load transects shapefile
 bbs_linesSWE99TM <- spTransform(bbs_lines, CRS("+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs")) # reproject
 bbs_linesWGS84 <- spTransform(bbs_lines, CRS("+proj=longlat +datum=WGS84")) # reproject
 bbs_linesWGS84$KARTA <- as.character(bbs_linesWGS84$KARTA)
 
+#load standardroute points shapefile and reproject
 bbs_pointsRT90 <- readOGR("Transects, points and buffers", "stdruttPunkterRT90")  #load points shapefile
 bbs_pointsWGS84 <- spTransform(bbs_pointsRT90, CRS("+proj=longlat +datum=WGS84")) # reproject
 bbs_points_df <- data.frame(cbind(bbs_pointsWGS84@data, bbs_pointsWGS84@coords))
@@ -42,6 +45,7 @@ cc_points <- intersect(bbs_pointsWGS84,cc_onrouteWGS84) #intersect routes with c
 cc_points_df <- cc_points@data
 cc_points_df <- cc_points_df[which(!duplicated(cc_points_df$OBJECTID)), ] # omit doubles; ccs that intersect more than once
 
+#get list of routes with names
 coord <- read.csv("public_standardrutter_koordinater.csv", sep=";", dec=",")
 coord$karta <- as.character(coord$karta)
 names <- read.csv("public_standardrutter_oversikt.csv", sep=";", dec=",")
@@ -49,6 +53,7 @@ names$karta <- as.character(names$karta)
 names$namn <- as.character(names$namn)
 coord <- merge(coord, names[,2:3], by="karta")  #add route names to coordinates df
 
+#number ccs per route and add to data
 bla <- intersect(bbs_linesWGS84,cc_onrouteWGS84) #intersect routes with ccs, only to get the numbers of the routes that have ccs
 kartor <- unique(bla@data$KARTA) #get route numbers
 route_ccs <- data.frame(cbind(bla@data$KARTA,bla@data$OBJECTID)) #create df with cc IDs for each route
@@ -61,6 +66,7 @@ cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, route_ccs[match(cc_onro
 
 coord_sel <- coord[coord$karta %in% kartor,] #select routes with ccs on them
 
+#get cc centroids coords and add to data
 cc_onrouteWGS84@data$OBJECTID <- as.character(cc_onrouteWGS84@data$OBJECTID)
 cc_Centroids <- gCentroid(cc_onrouteWGS84, byid=TRUE, id=cc_onrouteWGS84@data$OBJECTID) #get centroid coordinates of ccs
 cc_onrouteWGS84@data$OBJECTID <- as.numeric(cc_onrouteWGS84@data$OBJECTID)
@@ -68,6 +74,8 @@ df_centroids <- data.frame(cc_Centroids@coords, as.numeric(rownames(cc_Centroids
 colnames(df_centroids)<- c("cx", "cy", "OBJECTID")
 cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, df_centroids[match(cc_onrouteWGS84@data[,1], df_centroids[,3]),]) #add centroid coordinates to cc df
 
+
+#loop over all routes
 coordss <- coord_sel[1:5,] # to test loop
 
 library(rmarkdown)
