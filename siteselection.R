@@ -17,6 +17,13 @@ rm(cc_total)
 
 bbs_lines <- readOGR("Transects, points and buffers", "bbs_lines")  #load transects shapefile
 bbs_linesSWE99TM <- spTransform(bbs_lines, CRS("+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs")) # reproject
+bbs_linesWGS84 <- spTransform(bbs_lines, CRS("+proj=longlat +datum=WGS84")) # reproject
+bbs_linesWGS84$KARTA <- as.character(bbs_linesWGS84$KARTA)
+
+bbs_pointsRT90 <- readOGR("Transects, points and buffers", "stdruttPunkterRT90")  #load points shapefile
+bbs_pointsWGS84 <- spTransform(bbs_pointsRT90, CRS("+proj=longlat +datum=WGS84")) # reproject
+bbs_points_df <- data.frame(cbind(bbs_pointsWGS84@data, bbs_pointsWGS84@coords))
+bbs_points_df$KARTA <- as.character(bbs_points_df$KARTA)
 
 #function to get intersecting ccs per län, since running it for whole of sweden at once need to much working memory?!
 SubLan<-function(x){
@@ -30,17 +37,12 @@ rm(cc_after2006, cc_sublan)
 cc_onroute@data[,c(3:12,14:17)]<-NULL
 cc_onrouteWGS84 <- spTransform(cc_onroute, CRS("+proj=longlat +datum=WGS84")) # reproject
 
-bbs_linesWGS84 <- spTransform(bbs_lines, CRS("+proj=longlat +datum=WGS84")) # reproject
-bbs_linesWGS84$KARTA <- as.character(bbs_linesWGS84$KARTA)
-
 coord <- read.csv("public_standardrutter_koordinater.csv", sep=";", dec=",")
 coord$karta <- as.character(coord$karta)
-
 names <- read.csv("public_standardrutter_oversikt.csv", sep=";", dec=",")
 names$karta <- as.character(names$karta)
 names$namn <- as.character(names$namn)
 coord <- merge(coord, names[,2:3], by="karta")  #add route names to coordinates df
-
 
 bla <- intersect(bbs_linesWGS84,cc_onrouteWGS84) #intersect routes with ccs, only to get the numbers of the routes that have ccs
 kartor <- unique(bla@data$KARTA) #get route numbers
@@ -48,7 +50,6 @@ route_ccs <- data.frame(cbind(bla@data$KARTA,bla@data$OBJECTID)) #create df with
 colnames(route_ccs) <- c("karta","OBJECTID")
 route_ccs <- route_ccs[which(!duplicated(route_ccs$OBJECTID)), ] # omit doubles; ccs that intersect more than once
 route_ccs <- ddply(route_ccs, .(karta), mutate, id = seq_along(OBJECTID)) #number ccs along each route
-
 route_ccs$OBJECTID <- as.numeric(as.character(route_ccs$OBJECTID))
 cc_onrouteWGS84@data$OBJECTID <- as.numeric(cc_onrouteWGS84@data$OBJECTID)
 cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, route_ccs[match(cc_onrouteWGS84@data[,1], route_ccs[,2]),]) #add sequence numbers to cc df
@@ -72,11 +73,11 @@ for(i in 1:nrow(coordss)){
   lat <- coordss$mitt_wgs84_lat[i]
 routemap <- qmap(c(lon = lon, lat = lat), zoom = 14, maptype = 'hybrid')+
   geom_polygon(aes(x = long, y = lat, group=group), data = cc_onrouteWGS84, fill="blue", alpha=.4, color="blue")+
-  geom_line(aes(x = long, y = lat, group=group),data = bbs_linesWGS84, color="red")+
-  geom_text(label=coordss$karta[i],vjust=1.3, hjust=-0.1, color="white", size=12)+
-  geom_text(label=coordss$namn[i],vjust=1.3, hjust=1.2, color="white", size=12)+
+  geom_line(aes(x = long, y = lat, group=group),data = bbs_linesWGS84, color="red", size=1)+
+  geom_point(aes(x = coords.x1, y = coords.x2), data = subset(bbs_points_df, KARTA==coordss$karta[i]), color = "red", size=4)+
+  geom_text(label=coordss$karta[i],vjust=1.3, hjust=-0.1, color="white", size=8)+
+  geom_text(label=coordss$namn[i],vjust=1.3, hjust=1.2, color="white", size=8)+
   geom_text(data = subset(cc_onrouteWGS84@data, karta==coordss$karta[i]) , aes(label = id,x = cx, y = cy), color = "white", size=6)
-knit2pdf("siteselection.rmd", output = paste0("map.",coordss$karta[i],".pdf"))
+  render("siteselection.rmd", output_file = paste0("map.",coordss$karta[i],".pdf"))
 }
-
 
