@@ -37,6 +37,11 @@ rm(cc_after2006, cc_sublan)
 cc_onroute@data[,c(3:12,14:17)]<-NULL
 cc_onrouteWGS84 <- spTransform(cc_onroute, CRS("+proj=longlat +datum=WGS84")) # reproject
 
+#check which existing points are on ccs
+cc_points <- intersect(bbs_pointsWGS84,cc_onrouteWGS84) #intersect routes with ccs, only to get the numbers of the routes that have ccs
+cc_points_df <- cc_points@data
+cc_points_df <- cc_points_df[which(!duplicated(cc_points_df$OBJECTID)), ] # omit doubles; ccs that intersect more than once
+
 coord <- read.csv("public_standardrutter_koordinater.csv", sep=";", dec=",")
 coord$karta <- as.character(coord$karta)
 names <- read.csv("public_standardrutter_oversikt.csv", sep=";", dec=",")
