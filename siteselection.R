@@ -86,4 +86,3 @@ routemap <- qmap(c(lon = lon, lat = lat), zoom = 14, maptype = 'hybrid')+
   render("siteselection.rmd", output_file = paste0("map.",coordss$karta[i],".pdf"))
 }
 
-
