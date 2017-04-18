@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 library(ggmap)
 library(rgdal)
 library(rgeos)
