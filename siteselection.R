@@ -81,7 +81,7 @@ cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, df_centroids[match(cc_o
 
 
 #loop over all routes
-coordss <- coord_sel[440:445,] # to test loop
+coordss <- coord_sel # to test loop
 
 library(rmarkdown)
 library(knitr)
