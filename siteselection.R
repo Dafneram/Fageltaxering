@@ -32,23 +32,82 @@ bbs_pointsWGS84 <- spTransform(bbs_points, CRS("+proj=longlat +datum=WGS84")) # 
 bbs_points_df <- data.frame(cbind(bbs_pointsWGS84@data, bbs_pointsWGS84@coords))
 bbs_points_df$KARTA <- as.character(bbs_points_df$KARTA)
 
-#function to get intersecting ccs per län, since running it for whole of sweden at once need to much working memory?!
-SubLan<-function(x){
+#get intersecting ccs per län, since running it for whole of sweden at once need to much working memory
+cc_sublan <- lapply(levels(cc_after2006WGS84@data$Lannr),function(x){
   a <- cc_after2006WGS84[cc_after2006WGS84@data$Lannr == x,]
   b <- a[bbs_linesWGS84,]
-}
-
-cc_sublan <- lapply(levels(cc_after2006WGS84@data$Lannr),SubLan) 
+}) 
 cc_onrouteWGS84 <- do.call(bind, cc_sublan)
 rm(cc_after2006, cc_after2006WGS84, cc_sublan)
 cc_onrouteWGS84@data[,c(3:12,14:17)]<-NULL
-#cc_onrouteWGS84 <- spTransform(cc_onroute, CRS("+proj=longlat +datum=WGS84")) # reproject
+BU <- cc_onrouteWGS84
+cc_onrouteWGS84 <- BU
+
+#get list of routes with ccs
+ri <- intersect(bbs_linesWGS84,cc_onrouteWGS84) #intersect routes with ccs, only to get the numbers of the routes that have ccs
+#ri3 <- intersect(cc_onrouteWGS84, bbs_linesWGS84)
+
+bastard <- subset(cc_onrouteWGS84, cc_onrouteWGS84@data$OBJECTID == "68215")
+
+route_ccs <- data.frame(cbind(ri@data$KARTA,ri@data$OBJECTID)) #create df with cc IDs for each route
+colnames(route_ccs) <- c("karta","OBJECTID")
+
+doubles <- route_ccs$OBJECTID[which(duplicated(route_ccs$OBJECTID))]
+
+cc_onrouteWGS84@data$OBJECTID <- as.character(cc_onrouteWGS84@data$OBJECTID)
+cc_onrouteWGS84@data$OBJECTID <- as.numeric(cc_onrouteWGS84@data$OBJECTID)
+route_ccs$OBJECTID <- as.character(route_ccs$OBJECTID)
+route_ccs$OBJECTID <- as.numeric(route_ccs$OBJECTID)
+
+cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, route_ccs[match(cc_onrouteWGS84@data[,1], route_ccs[,2]),])
+cc_onrouteWGS84@data$karta <- as.character(cc_onrouteWGS84@data$karta)
+
+#Take out doubles
+cc_onrouteWGS84 <- cc_onrouteWGS84[!(cc_onrouteWGS84@data$OBJECTID %in% doubles),]
+cc_onrouteWGS84 <- cc_onrouteWGS84[!(cc_onrouteWGS84@data$OBJECTID == "68215"),]
+
+
+#list ccs that overlap with other ccs
+ccs_count <- as.data.frame(table(route_ccs$karta))
+ccs_count <- subset(ccs_count, Freq >1 )
+kartor_mult <- as.list(as.character(ccs_count$Var1))
+
+overlapccs <- matrix(NA, nrow=500, ncol=500)
+for(i in 1:length(kartor_mult)){
+
+    oneroute <- subset(cc_onrouteWGS84, karta == kartor_mult[i])
+    combos <- combn(as.list(oneroute$OBJECTID),2)
+    
+    for(k in seq_along(combos[1,])){
+     if(gIntersects(subset(cc_onrouteWGS84, OBJECTID == combos[1,k]), subset(cc_onrouteWGS84, OBJECTID == combos[2,k]), byid = FALSE)){
+       overlapccs[[k,i]]<-(paste(combos[1,k]))
+       overlapccs[[k,i]]<-(paste(combos[2,k]))
+    }
+  } 
+}
+overlapccs <- overlapccs[!is.na(overlapccs)] 
+
+#exclude ccs that overlap with others
+cc_onrouteWGS84 <- subset(cc_onrouteWGS84,!(cc_onrouteWGS84@data$OBJECTID %in% overlapccs))
+
+#exclude polygons consisting of subpolygons
+nrPoly<- sapply(cc_onrouteWGS84@polygons,function(polys) length(polys@Polygons))
+cc_onrouteWGS84@data <- data.frame(cbind(cc_onrouteWGS84@data, nrPoly))
+cc_onrouteWGS84 <- cc_onrouteWGS84[cc_onrouteWGS84@data$nrPoly < 2,]
+
+#number ccs per route and add to data
+ri2 <- intersect(bbs_linesWGS84,cc_onrouteWGS84) #intersect routes with ccs, only to get the numbers of the routes that have ccs
+route_ccs2 <- data.frame(cbind(ri2@data$KARTA,ri2@data$OBJECTID)) #create df with cc IDs for each route
+colnames(route_ccs2) <- c("karta","OBJECTID")
+
+route_ccs2 <- ddply(route_ccs2, .(karta), mutate, id = seq_along(OBJECTID)) #number ccs along each route
+cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, route_ccs2[match(cc_onrouteWGS84@data[,1], route_ccs2[,2]),]) #add sequence numbers to cc df
 
 #check which existing points are on ccs
 cc_points <- intersect(bbs_pointsWGS84,cc_onrouteWGS84) 
 cc_points_df <- cc_points@data
-cc_points_df <- cc_points_df[which(!duplicated(cc_points_df$OBJECTID)), ] # omit doubles; ccs that intersect more than once
-cc_points_df <- data.frame(cbind(cc_points@data, cc_points@coords))
+#cc_points_df <- cc_points_df[which(!duplicated(cc_points_df$OBJECTID)), ] # omit doubles; ccs that intersect more than once
+#cc_points_df <- data.frame(cbind(cc_points@data, cc_points@coords))
 
 #get list of routes with names
 coord <- read.csv("public_standardrutter_koordinater.csv", sep=";", dec=",")
@@ -58,17 +117,7 @@ names$karta <- as.character(names$karta)
 names$namn <- as.character(names$namn)
 coord <- merge(coord, names[,2:3], by="karta")  #add route names to coordinates df
 
-#number ccs per route and add to data
-bla <- intersect(bbs_linesWGS84,cc_onrouteWGS84) #intersect routes with ccs, only to get the numbers of the routes that have ccs
-kartor <- unique(bla@data$KARTA) #get route numbers
-route_ccs <- data.frame(cbind(bla@data$KARTA,bla@data$OBJECTID)) #create df with cc IDs for each route
-colnames(route_ccs) <- c("karta","OBJECTID")
-route_ccs <- route_ccs[which(!duplicated(route_ccs$OBJECTID)), ] # omit doubles; ccs that intersect more than once
-route_ccs <- ddply(route_ccs, .(karta), mutate, id = seq_along(OBJECTID)) #number ccs along each route
-route_ccs$OBJECTID <- as.numeric(as.character(route_ccs$OBJECTID))
-cc_onrouteWGS84@data$OBJECTID <- as.numeric(cc_onrouteWGS84@data$OBJECTID)
-cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, route_ccs[match(cc_onrouteWGS84@data[,1], route_ccs[,2]),]) #add sequence numbers to cc df
-
+kartor <- sort(unique(cc_onrouteWGS84@data$karta)) #get route numbers
 coord_sel <- coord[coord$karta %in% kartor,] #select routes with ccs on them
 
 #get cc centroids coords and add to data
@@ -81,7 +130,9 @@ cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, df_centroids[match(cc_o
 
 
 #loop over all routes
-coordss <- coord_sel # to test loop
+coordss <- coord_sel [1:2,]# to test loop
+coordss <- coord_sel [1:220,]# with zoom 14
+coordss <- coord_sel [221:454,]# with zoom 13
 
 library(rmarkdown)
 library(knitr)
@@ -90,12 +141,16 @@ for(i in 1:nrow(coordss)){
   lon <- coordss$mitt_wgs84_lon[i]
   lat <- coordss$mitt_wgs84_lat[i]
   route <- paste(coordss$karta[i],label=coordss$namn[i])
-routemap <- qmap(c(lon = lon, lat = lat), zoom = 13, maptype = 'hybrid')+
+routemap <- qmap(c(lon = lon, lat = lat), zoom = 14, maptype = 'hybrid')+
   geom_polygon(aes(x = long, y = lat, group=group), data = cc_onrouteWGS84, fill="blue", alpha=.4, color="blue")+
-  geom_line(aes(x = long, y = lat, group=group),data = bbs_linesWGS84, color="red", size=1)+
-  geom_point(aes(x = coords.x1, y = coords.x2), data = subset(bbs_points_df, KARTA==coordss$karta[i]), color = "red", size=4)+
-  geom_point(aes(x = coords.x1, y = coords.x2), data = subset(cc_points_df, KARTA==coordss$karta[i]), color = "blue", size=4)+
+  geom_line(aes(x = long, y = lat, group=group),data = bbs_linesWGS84, color="red", size=0.8)+
+  geom_point(aes(x = coords.x1, y = coords.x2), data = subset(bbs_points_df, KARTA==coordss$karta[i]), shape=1, color = "red", size=3, stroke=1)+
+#  geom_point(aes(x = coords.x1, y = coords.x2), data = subset(cc_points_df, KARTA==coordss$karta[i]), shape=1, color = "blue", size=3, stroke=1)+
   geom_text(label=route,vjust=1.3, hjust=-0.1, color="white", size=8)+
   geom_text(data = subset(cc_onrouteWGS84@data, karta==coordss$karta[i]) , aes(label = id,x = cx, y = cy), color = "white", size=6)
   render("siteselection.rmd", output_file = paste0("map.",coordss$karta[i],".pdf"))
 }
+
+
+
+
