@@ -66,7 +66,6 @@ cc_onrouteWGS84@data$karta <- as.character(cc_onrouteWGS84@data$karta)
 cc_onrouteWGS84 <- cc_onrouteWGS84[!(cc_onrouteWGS84@data$OBJECTID %in% doubles),]
 cc_onrouteWGS84 <- cc_onrouteWGS84[!(cc_onrouteWGS84@data$OBJECTID == "68215"),]
 
-
 #list ccs that overlap with other ccs
 ccs_count <- as.data.frame(table(route_ccs$karta))
 ccs_count <- subset(ccs_count, Freq >1 )
@@ -108,6 +107,10 @@ cc_points <- intersect(bbs_pointsWGS84,cc_onrouteWGS84)
 cc_points_df <- cc_points@data
 #cc_points_df <- cc_points_df[which(!duplicated(cc_points_df$OBJECTID)), ] # omit doubles; ccs that intersect more than once
 #cc_points_df <- data.frame(cbind(cc_points@data, cc_points@coords))
+
+#exclude all excessive ccs (more than 2 per route)
+cc_onrouteWGS84 <- subset(cc_onrouteWGS84, cc_onrouteWGS84@data$id < 3)
+
 
 #get list of routes with names
 coord <- read.csv("public_standardrutter_koordinater.csv", sep=";", dec=",")
