@@ -9,12 +9,13 @@ library(plyr)
 setwd("C:/DAFNE/Sweden GIS data")
 
 #load clear-cut shapefile and select after2006
-cc_total <- readOGR("sksUtfordAvverk_20170220T054858Z", "sksUtfordAvverk") 
+cc_total <- readOGR("sksUtfordAvverk_20170220T054858Z", "sksUtfordAvverk", stringsAsFactors = FALSE) 
 cc_total <- cc_total[!is.na(cc_total@data$Avvdatum) ,] 
 cc_total@data$Avvdatum <- as.Date(cc_total@data$Avvdatum)  
 cc_after2006 <- cc_total[cc_total@data$Avvdatum > "2007-01-01", ] 
 cc_after2006 <- cc_after2006[!is.na(cc_after2006@data$Lannr) ,] 
 cc_after2006WGS84 <- spTransform(cc_after2006, CRS("+proj=longlat +datum=WGS84")) # reproject
+cc_after2006WGS84@data$Lannr <- as.factor(cc_after2006WGS84@data$Lannr)
 rm(cc_total)
 
 #load standardroute lines shapefile and reproject
@@ -49,22 +50,18 @@ ri <- intersect(bbs_linesWGS84,cc_onrouteWGS84) #intersect routes with ccs, only
 
 bastard <- subset(cc_onrouteWGS84, cc_onrouteWGS84@data$OBJECTID == "68215")
 
-route_ccs <- data.frame(cbind(ri@data$KARTA,ri@data$OBJECTID)) #create df with cc IDs for each route
+route_ccs <- data.frame(cbind(ri@data$KARTA,ri@data$OBJECTID),stringsAsFactors = FALSE) #create df with cc IDs for each route
 colnames(route_ccs) <- c("karta","OBJECTID")
 
 doubles <- route_ccs$OBJECTID[which(duplicated(route_ccs$OBJECTID))]
 
-cc_onrouteWGS84@data$OBJECTID <- as.character(cc_onrouteWGS84@data$OBJECTID)
-cc_onrouteWGS84@data$OBJECTID <- as.numeric(cc_onrouteWGS84@data$OBJECTID)
-route_ccs$OBJECTID <- as.character(route_ccs$OBJECTID)
-route_ccs$OBJECTID <- as.numeric(route_ccs$OBJECTID)
-
 cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, route_ccs[match(cc_onrouteWGS84@data[,1], route_ccs[,2]),])
-cc_onrouteWGS84@data$karta <- as.character(cc_onrouteWGS84@data$karta)
 
 #Take out doubles
 cc_onrouteWGS84 <- cc_onrouteWGS84[!(cc_onrouteWGS84@data$OBJECTID %in% doubles),]
 cc_onrouteWGS84 <- cc_onrouteWGS84[!(cc_onrouteWGS84@data$OBJECTID == "68215"),]
+route_ccs <- route_ccs[!(route_ccs$OBJECTID %in% doubles),]
+
 
 #list ccs that overlap with other ccs
 ccs_count <- as.data.frame(table(route_ccs$karta))
@@ -96,7 +93,7 @@ cc_onrouteWGS84 <- cc_onrouteWGS84[cc_onrouteWGS84@data$nrPoly < 2,]
 
 #number ccs per route and add to data
 ri2 <- intersect(bbs_linesWGS84,cc_onrouteWGS84) #intersect routes with ccs, only to get the numbers of the routes that have ccs
-route_ccs2 <- data.frame(cbind(ri2@data$KARTA,ri2@data$OBJECTID)) #create df with cc IDs for each route
+route_ccs2 <- data.frame(cbind(ri2@data$KARTA,ri2@data$OBJECTID),stringsAsFactors = FALSE) #create df with cc IDs for each route
 colnames(route_ccs2) <- c("karta","OBJECTID")
 
 route_ccs2 <- ddply(route_ccs2, .(karta), mutate, id = seq_along(OBJECTID)) #number ccs along each route
@@ -124,7 +121,6 @@ kartor <- sort(unique(cc_onrouteWGS84@data$karta)) #get route numbers
 coord_sel <- coord[coord$karta %in% kartor,] #select routes with ccs on them
 
 #get cc centroids coords and add to data
-cc_onrouteWGS84@data$OBJECTID <- as.character(cc_onrouteWGS84@data$OBJECTID)
 cc_Centroids <- gCentroid(cc_onrouteWGS84, byid=TRUE, id=cc_onrouteWGS84@data$OBJECTID) #get centroid coordinates of ccs
 cc_onrouteWGS84@data$OBJECTID <- as.numeric(cc_onrouteWGS84@data$OBJECTID)
 df_centroids <- data.frame(cc_Centroids@coords, as.numeric(rownames(cc_Centroids@coords)))
