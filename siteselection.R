@@ -42,7 +42,7 @@ cc_onrouteWGS84 <- do.call(bind, cc_sublan)
 rm(cc_after2006, cc_after2006WGS84, cc_sublan)
 cc_onrouteWGS84@data[,c(3:12,14:17)]<-NULL
 BU <- cc_onrouteWGS84
-cc_onrouteWGS84 <- BU
+#cc_onrouteWGS84 <- BU
 
 #get list of routes with ccs
 ri <- intersect(bbs_linesWGS84,cc_onrouteWGS84) #intersect routes with ccs, only to get the numbers of the routes that have ccs
@@ -129,7 +129,7 @@ cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, df_centroids[match(cc_o
 
 
 #loop over all routes
-coordss <- coord_sel [1:2,]# to test loop
+coordss <- coord_sel [1:5,]# to test loop
 coordss <- coord_sel [1:220,]# with zoom 14
 coordss <- coord_sel [221:454,]# with zoom 13
 
