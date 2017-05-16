@@ -129,7 +129,7 @@ cc_onrouteWGS84@data <- data.frame(cc_onrouteWGS84@data, df_centroids[match(cc_o
 
 
 #loop over all routes
-coordss <- coord_sel [1:5,]# to test loop
+coordss <- coord_sel [1:2,]# to test loop
 coordss <- coord_sel [1:220,]# with zoom 14
 coordss <- coord_sel [221:454,]# with zoom 13
 

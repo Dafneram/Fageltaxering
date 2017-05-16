@@ -1,13 +1,21 @@
 ---
-output: pdf_document
+output:
+  pdf_document:
+    latex_engine: xelatex
+mainfont: Arial
+fontsize: 12pt
 ---
 
 
-```{r,out.width = '80%', echo=FALSE}
+```{r, fig.align='center', fig.height = 6, fig.width = 6, echo=FALSE}
 routemap
 ```
 
-Field instructions
-bla bla
+* __Fem minuter punktr&auml;kning__: r&auml;kna n&auml;r du, l&auml;ngs linjen du f&ouml;ljer, kommit halvv&auml;gs ut p&aring; hygget.
+* __R&auml;kna f&aring;glar du h&ouml;r och ser__ som sitter p&aring; hygget, eller flygande f&aring;glar __som uppenbarligen &auml;r hemmah&ouml;rande p&aring; hygget__.
+* Om du &auml;r os&auml;ker p&aring; hur du skall g&ouml;ra med n&aring;gon enskild f&aring;gel, s&aring; __ta hellre med den i protokollet och g&ouml;r en notering__ om att du &auml;r os&auml;ker, och varf&ouml;r.
+* __Tar ett foto eller tv&aring;__ p&aring; hygget, fr&aring;n platsen d&auml;r du r&auml;knar. 
 
-report route name/number and surveyed clear-cut number back to.....
+Notera att det kan finnas fler &auml;n tv&aring; hyggen l&auml;ngs din rutt, men __du skall bara r&auml;kna p&aring; de hyggen vi pekat ut__. I v&auml;rsta fall har n&aring;got g&aring;tt s&aring; snett att du inte hittar hygget, f&ouml;r att du g&aring;tt fel eller f&ouml;r att hygget &auml;r felmarkerat. Skippa d&aring; r&auml;kningen helt och f&ouml;rklara i protokollet varf&ouml;r r&auml;kningen inte blev av.
+
+__Rapportera dina observationer p&aring; det s&auml;rskilda protokoll du f&aring;tt och skicka in tillsammans med standardruttsprotokollet__. Skickar du med bilder, namnge dem med ruttkod och hyggesnummer (ex. &ldquo;05F7H &ndash; Hygge 1.jpg&rdquo;). __Skicka ett sms eller e-mail s&aring; snart som m&ouml;jligt efter du har varit ute__, med ditt namn, ruttkod och hyggesnummer som har inventerats till  +46 (0)7 08 38 46 27 eller fageltaxering&#64;biol.lu.se.
